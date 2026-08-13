@@ -4,11 +4,19 @@ import torch
 import torch.nn as nn
 
 from dataset import get_dataloaders
-from model import StockLSTM
+from model import StockGRU, StockLSTM
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 
 DEVICE = torch.device("cpu")
+
+MODEL_CLASSES = {"lstm": StockLSTM, "gru": StockGRU}
+
+
+def build_model(model_type: str, hidden_size: int) -> nn.Module:
+    if model_type not in MODEL_CLASSES:
+        raise ValueError(f"Bilinmeyen model_type: {model_type!r} (beklenen: 'lstm' veya 'gru')")
+    return MODEL_CLASSES[model_type](hidden_size=hidden_size)
 
 
 def train_one_epoch(model: nn.Module, loader, criterion, optimizer) -> float:
@@ -31,6 +39,7 @@ def train_one_epoch(model: nn.Module, loader, criterion, optimizer) -> float:
 
 def train_model(
     ticker: str,
+    model_type: str = "lstm",
     learning_rate: float = 0.001,
     batch_size: int = 32,
     num_epochs: int = 20,
@@ -39,7 +48,7 @@ def train_model(
 ) -> tuple[nn.Module, float]:
     train_loader, _ = get_dataloaders(ticker, batch_size=batch_size)
 
-    model = StockLSTM(hidden_size=hidden_size).to(DEVICE)
+    model = build_model(model_type, hidden_size=hidden_size).to(DEVICE)
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
@@ -54,6 +63,7 @@ def train_model(
 
 def train_and_save(
     ticker: str,
+    model_type: str = "lstm",
     learning_rate: float = 0.0005,
     batch_size: int = 32,
     num_epochs: int = 30,
@@ -61,9 +71,10 @@ def train_and_save(
     verbose: bool = True,
 ) -> float:
     """Bilinen en iyi hiperparametrelerle tek seferlik egitim yapar ve
-    models/{ticker}_stock_lstm.pt olarak kaydeder."""
+    models/{ticker}_{model_type}_model.pt olarak kaydeder."""
     model, final_loss = train_model(
         ticker,
+        model_type=model_type,
         learning_rate=learning_rate,
         batch_size=batch_size,
         num_epochs=num_epochs,
@@ -72,9 +83,9 @@ def train_and_save(
     )
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    model_path = MODELS_DIR / f"{ticker}_stock_lstm.pt"
+    model_path = MODELS_DIR / f"{ticker}_{model_type}_model.pt"
     torch.save(model.state_dict(), model_path)
-    print(f"[{ticker}] Model '{model_path}' olarak kaydedildi (final train loss: {final_loss:.6f}).\n")
+    print(f"[{ticker}] {model_type.upper()} modeli '{model_path}' olarak kaydedildi (final train loss: {final_loss:.6f}).\n")
 
     return final_loss
 
@@ -114,7 +125,7 @@ def run_experiments(ticker: str) -> None:
         print(f"  {name}: {loss:.6f}{marker}")
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    model_path = MODELS_DIR / f"{ticker}_stock_lstm.pt"
+    model_path = MODELS_DIR / f"{ticker}_lstm_model.pt"
     torch.save(best_model.state_dict(), model_path)
     print(f"\n[{ticker}] En iyi kombinasyon: {best_name} (final train loss: {best_loss:.6f})")
     print(f"Model '{model_path}' olarak kaydedildi.")

@@ -4,10 +4,12 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from model import StockLSTM
+from model import StockGRU, StockLSTM
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
+
+MODEL_CLASSES = {"lstm": StockLSTM, "gru": StockGRU}
 
 # prepare_dataset.py'daki FEATURE_COLUMNS ile ayni sira: Close scaler'in ilk kolonu.
 NUM_FEATURES = 5
@@ -34,16 +36,19 @@ def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[float, floa
     return rmse, mae, mape
 
 
-def predict_test_set(ticker: str) -> tuple[np.ndarray, np.ndarray]:
+def predict_test_set(ticker: str, model_type: str = "lstm") -> tuple[np.ndarray, np.ndarray]:
     """Test seti uzerinde tahmin yapar, gerceklestirdigi Close degerleriyle
     birlikte gercek dolar olcegindeki (y_true, y_pred) ciftini dondurur."""
+    if model_type not in MODEL_CLASSES:
+        raise ValueError(f"Bilinmeyen model_type: {model_type!r} (beklenen: 'lstm' veya 'gru')")
+
     scaler_path = DATA_DIR / f"{ticker}_scaler.pkl"
-    model_path = MODELS_DIR / f"{ticker}_stock_lstm.pt"
+    model_path = MODELS_DIR / f"{ticker}_{model_type}_model.pt"
 
     with open(scaler_path, "rb") as f:
         scaler = pickle.load(f)
 
-    model = StockLSTM().to(DEVICE)
+    model = MODEL_CLASSES[model_type]().to(DEVICE)
     model.load_state_dict(torch.load(model_path, map_location=DEVICE))
     model.eval()
 
@@ -61,14 +66,14 @@ def predict_test_set(ticker: str) -> tuple[np.ndarray, np.ndarray]:
     return y_true, y_pred
 
 
-def main(ticker: str = "AAPL") -> None:
-    y_true, y_pred = predict_test_set(ticker)
+def main(ticker: str = "AAPL", model_type: str = "lstm") -> None:
+    y_true, y_pred = predict_test_set(ticker, model_type=model_type)
     rmse, mae, mape = compute_metrics(y_true, y_pred)
 
-    print(f"[{ticker}] Test seti ornek sayisi: {len(y_true)}")
-    print(f"[{ticker}] RMSE: ${rmse:.2f}")
-    print(f"[{ticker}] MAE:  ${mae:.2f}")
-    print(f"[{ticker}] MAPE: {mape:.2f}%")
+    print(f"[{ticker}][{model_type.upper()}] Test seti ornek sayisi: {len(y_true)}")
+    print(f"[{ticker}][{model_type.upper()}] RMSE: ${rmse:.2f}")
+    print(f"[{ticker}][{model_type.upper()}] MAE:  ${mae:.2f}")
+    print(f"[{ticker}][{model_type.upper()}] MAPE: {mape:.2f}%")
 
 
 if __name__ == "__main__":

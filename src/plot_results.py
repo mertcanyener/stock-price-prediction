@@ -18,8 +18,8 @@ def get_test_dates(ticker: str):
     return test_df.index[SEQUENCE_LENGTH:]
 
 
-def plot_predictions(ticker: str) -> Path:
-    y_true, y_pred = predict_test_set(ticker)
+def plot_predictions(ticker: str, model_type: str = "lstm") -> Path:
+    y_true, y_pred = predict_test_set(ticker, model_type=model_type)
     dates = get_test_dates(ticker)
 
     plt.figure(figsize=(12, 6))

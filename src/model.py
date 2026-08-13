@@ -34,14 +34,42 @@ class StockLSTM(nn.Module):
         return out
 
 
+class StockGRU(nn.Module):
+    def __init__(
+        self,
+        input_size: int = INPUT_SIZE,
+        hidden_size: int = HIDDEN_SIZE,
+        num_layers: int = NUM_LAYERS,
+        dropout: float = DROPOUT,
+    ) -> None:
+        super().__init__()
+        self.gru = nn.GRU(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            dropout=dropout,
+        )
+        self.dropout = nn.Dropout(dropout)
+        self.fc = nn.Linear(hidden_size, 1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        gru_out, _ = self.gru(x)
+        last_step = gru_out[:, -1, :]
+        out = self.dropout(last_step)
+        out = self.fc(out)
+        return out
+
+
 if __name__ == "__main__":
-    model = StockLSTM()
-    print(model)
+    for model_cls in (StockLSTM, StockGRU):
+        model = model_cls()
+        print(model)
 
-    dummy_input = torch.randn(8, 30, 5)
-    output = model(dummy_input)
+        dummy_input = torch.randn(8, 30, 5)
+        output = model(dummy_input)
 
-    print(f"\nDummy input shape: {tuple(dummy_input.shape)}")
-    print(f"Output shape: {tuple(output.shape)}")
-    assert output.shape == (8, 1), f"Beklenen (8, 1), gelen {tuple(output.shape)}"
-    print("Output shape dogrulandi: (8, 1)")
+        print(f"\nDummy input shape: {tuple(dummy_input.shape)}")
+        print(f"Output shape: {tuple(output.shape)}")
+        assert output.shape == (8, 1), f"Beklenen (8, 1), gelen {tuple(output.shape)}"
+        print("Output shape dogrulandi: (8, 1)\n")
