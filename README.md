@@ -87,20 +87,20 @@ Her hisse için aynı hiperparametrelerle (`learning_rate=0.0005`, `epoch=30`, `
 
 | Ticker | RMSE ($) | MAE ($) | MAPE (%) |
 |---|---|---|---|
-| AAPL | 7.41 | 5.73 | 1.98 |
-| TSLA | 14.02 | 10.67 | 2.74 |
-| AMZN | 10.62 | 7.91 | 3.22 |
-| MSFT | 20.66 | 14.06 | 3.29 |
-| TTWO | 9.98 | 7.67 | 3.47 |
-| GOOGL | 17.13 | 13.09 | 3.74 |
-| NVDA | 11.76 | 9.56 | 4.72 |
-| AMD | 25.18 | 19.13 | 5.55 |
-| META | 50.28 | 44.56 | 7.31 |
-| PLTR | 12.82 | 10.33 | 7.39 |
+| AAPL | 7.75 | 6.06 | 2.10 |
+| TSLA | 14.59 | 11.37 | 2.90 |
+| AMZN | 9.84 | 7.23 | 3.00 |
+| TTWO | 8.90 | 6.84 | 3.03 |
+| MSFT | 18.94 | 13.22 | 3.09 |
+| NVDA | 7.77 | 6.28 | 3.19 |
+| GOOGL | 15.37 | 12.50 | 3.79 |
+| META | 36.79 | 26.98 | 4.24 |
+| PLTR | 10.52 | 7.60 | 5.28 |
+| AMD | 39.72 | 30.41 | 7.77 |
 
 Tam tablo `outputs/summary_results.csv` dosyasında.
 
-**Gözlem:** Model, AAPL, TSLA ve AMZN gibi göreli olarak daha büyük piyasa değerine sahip, daha istikrarlı fiyat hareketine sahip hisselerde belirgin şekilde daha düşük hata veriyor (MAPE %2-3 civarı). Buna karşılık META ve PLTR gibi daha volatil, ani ve sert fiyat sıçramaları yaşayan hisselerde hata payı gözle görülür şekilde artıyor (MAPE %7'nin üzerinde). Bu, modelin **hisse volatilitesine duyarlı** olduğunu gösteriyor: LSTM geçmiş fiyat hareketlerinden öğrendiği için, fiyatı daha öngörülebilir/trend takip eden hisselerde daha isabetli, ani rejim değişiklikleri yaşayan hisselerde ise daha isabetsiz tahminler üretiyor.
+**Gözlem:** Model, AAPL, TSLA, AMZN, TTWO, MSFT ve NVDA gibi göreli olarak daha istikrarlı fiyat hareketine sahip hisselerde belirgin şekilde daha düşük hata veriyor (MAPE %2-3 civarı). Buna karşılık PLTR ve özellikle AMD gibi daha volatil, ani ve sert fiyat sıçramaları yaşayan hisselerde hata payı gözle görülür şekilde artıyor (PLTR %5.28, AMD ise %7.77 ile en yüksek hata oranına sahip). Bu, modelin **hisse volatilitesine duyarlı** olduğunu gösteriyor: LSTM geçmiş fiyat hareketlerinden öğrendiği için, fiyatı daha öngörülebilir/trend takip eden hisselerde daha isabetli, ani rejim değişiklikleri yaşayan hisselerde ise daha isabetsiz tahminler üretiyor.
 
 En iyi performans gösteren AAPL için gerçek vs. tahmin grafiği:
 
