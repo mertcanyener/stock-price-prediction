@@ -7,7 +7,6 @@ from dataset import get_dataloaders
 from model import StockLSTM
 
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
-MODEL_PATH = MODELS_DIR / "stock_lstm.pt"
 
 DEVICE = torch.device("cpu")
 
@@ -31,13 +30,14 @@ def train_one_epoch(model: nn.Module, loader, criterion, optimizer) -> float:
 
 
 def train_model(
+    ticker: str,
     learning_rate: float = 0.001,
     batch_size: int = 32,
     num_epochs: int = 20,
     hidden_size: int = 64,
     verbose: bool = True,
 ) -> tuple[nn.Module, float]:
-    train_loader, _ = get_dataloaders(batch_size=batch_size)
+    train_loader, _ = get_dataloaders(ticker, batch_size=batch_size)
 
     model = StockLSTM(hidden_size=hidden_size).to(DEVICE)
     criterion = nn.MSELoss()
@@ -52,7 +52,36 @@ def train_model(
     return model, final_loss
 
 
-def main() -> None:
+def train_and_save(
+    ticker: str,
+    learning_rate: float = 0.0005,
+    batch_size: int = 32,
+    num_epochs: int = 30,
+    hidden_size: int = 64,
+    verbose: bool = True,
+) -> float:
+    """Bilinen en iyi hiperparametrelerle tek seferlik egitim yapar ve
+    models/{ticker}_stock_lstm.pt olarak kaydeder."""
+    model, final_loss = train_model(
+        ticker,
+        learning_rate=learning_rate,
+        batch_size=batch_size,
+        num_epochs=num_epochs,
+        hidden_size=hidden_size,
+        verbose=verbose,
+    )
+
+    MODELS_DIR.mkdir(parents=True, exist_ok=True)
+    model_path = MODELS_DIR / f"{ticker}_stock_lstm.pt"
+    torch.save(model.state_dict(), model_path)
+    print(f"[{ticker}] Model '{model_path}' olarak kaydedildi (final train loss: {final_loss:.6f}).\n")
+
+    return final_loss
+
+
+def run_experiments(ticker: str) -> None:
+    """Farkli hiperparametre kombinasyonlarini deneyip en iyisini kaydeder
+    (tek ticker uzerinde manuel hiperparametre arama icin)."""
     experiments = [
         {"name": "lr=0.001, epoch=20, hidden=64 (baseline)", "learning_rate": 0.001, "num_epochs": 20, "hidden_size": 64},
         {"name": "lr=0.0005, epoch=30, hidden=64", "learning_rate": 0.0005, "num_epochs": 30, "hidden_size": 64},
@@ -65,8 +94,9 @@ def main() -> None:
     best_name = None
 
     for config in experiments:
-        print(f"\n=== Deneme: {config['name']} ===")
+        print(f"\n=== [{ticker}] Deneme: {config['name']} ===")
         model, final_loss = train_model(
+            ticker,
             learning_rate=config["learning_rate"],
             num_epochs=config["num_epochs"],
             hidden_size=config["hidden_size"],
@@ -78,15 +108,20 @@ def main() -> None:
             best_model = model
             best_name = config["name"]
 
-    print("\n=== Karsilastirma (final train loss) ===")
+    print(f"\n=== [{ticker}] Karsilastirma (final train loss) ===")
     for name, loss in results:
         marker = "  <-- en iyi" if name == best_name else ""
         print(f"  {name}: {loss:.6f}{marker}")
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    torch.save(best_model.state_dict(), MODEL_PATH)
-    print(f"\nEn iyi kombinasyon: {best_name} (final train loss: {best_loss:.6f})")
-    print(f"Model '{MODEL_PATH}' olarak kaydedildi.")
+    model_path = MODELS_DIR / f"{ticker}_stock_lstm.pt"
+    torch.save(best_model.state_dict(), model_path)
+    print(f"\n[{ticker}] En iyi kombinasyon: {best_name} (final train loss: {best_loss:.6f})")
+    print(f"Model '{model_path}' olarak kaydedildi.")
+
+
+def main() -> None:
+    run_experiments("AAPL")
 
 
 if __name__ == "__main__":

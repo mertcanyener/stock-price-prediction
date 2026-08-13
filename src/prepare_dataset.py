@@ -6,7 +6,6 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-INPUT_PATH = DATA_DIR / "aapl_processed.csv"
 
 FEATURE_COLUMNS = ["Close", "MA7", "MA21", "Volume", "daily_return"]
 TARGET_COLUMN = "Close"
@@ -14,22 +13,23 @@ SEQUENCE_LENGTH = 30
 TEST_RATIO = 0.15
 
 
-def load_data() -> pd.DataFrame:
-    df = pd.read_csv(INPUT_PATH, index_col="Date", parse_dates=True)
+def load_data(ticker: str) -> pd.DataFrame:
+    input_path = DATA_DIR / f"{ticker}_processed.csv"
+    df = pd.read_csv(input_path, index_col="Date", parse_dates=True)
     df = df.sort_index()
     before = len(df)
     df = df.dropna()
-    print(f"Rolling window NaN satirlari dusuruldu: {before - len(df)} satir ({before} -> {len(df)})\n")
+    print(f"[{ticker}] Rolling window NaN satirlari dusuruldu: {before - len(df)} satir ({before} -> {len(df)})")
     return df
 
 
-def split_train_test(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def split_train_test(df: pd.DataFrame, ticker: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     split_idx = int(len(df) * (1 - TEST_RATIO))
     train_df = df.iloc[:split_idx].copy()
     test_df = df.iloc[split_idx:].copy()
     print(
-        f"Train/test split (shuffle yok, son %{TEST_RATIO * 100:.0f} test): "
-        f"train={len(train_df)}, test={len(test_df)}\n"
+        f"[{ticker}] Train/test split (shuffle yok, son %{TEST_RATIO * 100:.0f} test): "
+        f"train={len(train_df)}, test={len(test_df)}"
     )
     return train_df, test_df
 
@@ -62,32 +62,25 @@ def create_sequences(df: pd.DataFrame, seq_length: int = SEQUENCE_LENGTH) -> tup
     return np.array(X), np.array(y)
 
 
-def main() -> None:
-    df = load_data()
-    train_df, test_df = split_train_test(df)
+def prepare_dataset(ticker: str) -> None:
+    df = load_data(ticker)
+    train_df, test_df = split_train_test(df, ticker)
     train_scaled, test_scaled, scaler = scale_features(train_df, test_df)
 
     X_train, y_train = create_sequences(train_scaled)
     X_test, y_test = create_sequences(test_scaled)
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    np.save(DATA_DIR / "X_train.npy", X_train)
-    np.save(DATA_DIR / "y_train.npy", y_train)
-    np.save(DATA_DIR / "X_test.npy", X_test)
-    np.save(DATA_DIR / "y_test.npy", y_test)
+    np.save(DATA_DIR / f"{ticker}_X_train.npy", X_train)
+    np.save(DATA_DIR / f"{ticker}_y_train.npy", y_train)
+    np.save(DATA_DIR / f"{ticker}_X_test.npy", X_test)
+    np.save(DATA_DIR / f"{ticker}_y_test.npy", y_test)
 
-    with open(DATA_DIR / "scaler.pkl", "wb") as f:
+    with open(DATA_DIR / f"{ticker}_scaler.pkl", "wb") as f:
         pickle.dump(scaler, f)
 
-    print(f"Feature kolonlari: {FEATURE_COLUMNS}")
-    print(f"Target kolonu: {TARGET_COLUMN}")
-    print(f"Sequence uzunlugu: {SEQUENCE_LENGTH} gun\n")
-    print(f"X_train shape: {X_train.shape}")
-    print(f"y_train shape: {y_train.shape}")
-    print(f"X_test shape:  {X_test.shape}")
-    print(f"y_test shape:  {y_test.shape}\n")
-    print("X_train.npy, y_train.npy, X_test.npy, y_test.npy ve scaler.pkl 'data/' klasorune kaydedildi.")
+    print(f"[{ticker}] X_train {X_train.shape}, X_test {X_test.shape} -> data/ klasorune kaydedildi.\n")
 
 
 if __name__ == "__main__":
-    main()
+    prepare_dataset("AAPL")

@@ -9,9 +9,6 @@ from model import StockLSTM
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 MODELS_DIR = Path(__file__).resolve().parent.parent / "models"
 
-MODEL_PATH = MODELS_DIR / "stock_lstm.pt"
-SCALER_PATH = DATA_DIR / "scaler.pkl"
-
 # prepare_dataset.py'daki FEATURE_COLUMNS ile ayni sira: Close scaler'in ilk kolonu.
 NUM_FEATURES = 5
 CLOSE_INDEX = 0
@@ -37,18 +34,21 @@ def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> tuple[float, floa
     return rmse, mae, mape
 
 
-def predict_test_set() -> tuple[np.ndarray, np.ndarray]:
+def predict_test_set(ticker: str) -> tuple[np.ndarray, np.ndarray]:
     """Test seti uzerinde tahmin yapar, gerceklestirdigi Close degerleriyle
     birlikte gercek dolar olcegindeki (y_true, y_pred) ciftini dondurur."""
-    with open(SCALER_PATH, "rb") as f:
+    scaler_path = DATA_DIR / f"{ticker}_scaler.pkl"
+    model_path = MODELS_DIR / f"{ticker}_stock_lstm.pt"
+
+    with open(scaler_path, "rb") as f:
         scaler = pickle.load(f)
 
     model = StockLSTM().to(DEVICE)
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+    model.load_state_dict(torch.load(model_path, map_location=DEVICE))
     model.eval()
 
-    X_test = np.load(DATA_DIR / "X_test.npy")
-    y_test = np.load(DATA_DIR / "y_test.npy")
+    X_test = np.load(DATA_DIR / f"{ticker}_X_test.npy")
+    y_test = np.load(DATA_DIR / f"{ticker}_y_test.npy")
 
     X_test_tensor = torch.tensor(X_test, dtype=torch.float32).to(DEVICE)
 
@@ -61,14 +61,14 @@ def predict_test_set() -> tuple[np.ndarray, np.ndarray]:
     return y_true, y_pred
 
 
-def main() -> None:
-    y_true, y_pred = predict_test_set()
+def main(ticker: str = "AAPL") -> None:
+    y_true, y_pred = predict_test_set(ticker)
     rmse, mae, mape = compute_metrics(y_true, y_pred)
 
-    print(f"Test seti ornek sayisi: {len(y_true)}\n")
-    print(f"RMSE: ${rmse:.2f}")
-    print(f"MAE:  ${mae:.2f}")
-    print(f"MAPE: {mape:.2f}%")
+    print(f"[{ticker}] Test seti ornek sayisi: {len(y_true)}")
+    print(f"[{ticker}] RMSE: ${rmse:.2f}")
+    print(f"[{ticker}] MAE:  ${mae:.2f}")
+    print(f"[{ticker}] MAPE: {mape:.2f}%")
 
 
 if __name__ == "__main__":
