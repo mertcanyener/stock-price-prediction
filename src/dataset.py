@@ -21,7 +21,7 @@ class StockDataset(Dataset):
         return self.X[idx], self.y[idx]
 
 
-def get_dataloaders() -> tuple[DataLoader, DataLoader]:
+def get_dataloaders(batch_size: int = BATCH_SIZE) -> tuple[DataLoader, DataLoader]:
     X_train = np.load(DATA_DIR / "X_train.npy")
     y_train = np.load(DATA_DIR / "y_train.npy")
     X_test = np.load(DATA_DIR / "X_test.npy")
@@ -30,8 +30,8 @@ def get_dataloaders() -> tuple[DataLoader, DataLoader]:
     train_dataset = StockDataset(X_train, y_train)
     test_dataset = StockDataset(X_test, y_test)
 
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
 
     return train_loader, test_loader
 
