@@ -3,16 +3,15 @@ from pathlib import Path
 import pandas as pd
 import yfinance as yf
 
-TICKER = "AAPL"
+TICKERS = ["AAPL", "MSFT", "NVDA", "META", "PLTR", "GOOGL", "TTWO", "TSLA", "AMZN", "AMD"]
 PERIOD = "5y"
 INTERVAL = "1d"
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-OUTPUT_PATH = DATA_DIR / "aapl_raw.csv"
 
 
-def fetch_data() -> None:
-    df = yf.download(TICKER, period=PERIOD, interval=INTERVAL, auto_adjust=False)
+def fetch_data(ticker: str) -> pd.DataFrame:
+    df = yf.download(ticker, period=PERIOD, interval=INTERVAL, auto_adjust=False)
 
     if isinstance(df.columns, pd.MultiIndex):
         df.columns = df.columns.get_level_values(0)
@@ -20,14 +19,17 @@ def fetch_data() -> None:
     df = df[["Open", "High", "Low", "Close", "Volume"]]
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    df.to_csv(OUTPUT_PATH)
+    output_path = DATA_DIR / f"{ticker}_raw.csv"
+    df.to_csv(output_path)
 
-    print(f"{len(df)} satir veri indirildi ve '{OUTPUT_PATH}' dosyasina kaydedildi.\n")
-    print("Ilk 5 satir:")
-    print(df.head())
-    print("\nSon 5 satir:")
-    print(df.tail())
+    print(f"[{ticker}] {len(df)} satir veri indirildi ve '{output_path}' dosyasina kaydedildi.")
+    return df
+
+
+def fetch_all(tickers: list[str] = TICKERS) -> None:
+    for ticker in tickers:
+        fetch_data(ticker)
 
 
 if __name__ == "__main__":
-    fetch_data()
+    fetch_all()
